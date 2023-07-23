@@ -2,7 +2,7 @@
   <a href="" rel="noopener">
  <img width=200px height=200px src="https://i.imgur.com/VELRxXl.png" alt="Project logo"></a>
 </p>
-<h3 align="center">Platarium Wallet Node</h3>
+<h3 align="center">Platarium Wallet Node.js</h3>
 
 This is a simple project with a self-implemented blockchain for creating and managing wallets and transactions.
 
