@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="" rel="noopener">
+ <img width=200px height=200px src="https://i.imgur.com/VELRxXl.png" alt="Project logo"></a>
+</p>
 <h3 align="center">Platarium Wallet Node</h3>
 
 This is a simple project with a self-implemented blockchain for creating and managing wallets and transactions.
@@ -25,14 +29,18 @@ cd wallet.js
 Install the dependencies using npm:
 bash
 Copy code
+```
 npm install
+```
 ### Usage
 ## Generate a Mnemonic Phrase and Create a New Wallet
 Run the program using the following command:
 
 bash
 Copy code
+```
 node wallet.js
+```
 You will see a menu with available options. Choose "create" to generate a new wallet. The program will generate a mnemonic phrase for wallet recovery, public and private keys, which will be displayed on the screen. Save the mnemonic phrase in a secure place as it is required to recover your wallet.
 
 ### View Saved Wallets
