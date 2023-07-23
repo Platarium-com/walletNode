@@ -13,22 +13,19 @@ Before getting started, ensure you have the following prerequisites installed:
 * npm (Node Package Manager, comes with Node.js)
 ### Installation
 Clone the repository to your computer:
-bash
-Copy code
 
 ```
 git clone https://github.com/Platarium-com/walletNode/wallet.js.git
 ```
 
 Navigate to the project directory:
-bash
-Copy code
+
 ```
 cd wallet.js
 ```
+
 Install the dependencies using npm:
-bash
-Copy code
+
 ```
 npm install
 ```
@@ -36,8 +33,6 @@ npm install
 ## Generate a Mnemonic Phrase and Create a New Wallet
 Run the program using the following command:
 
-bash
-Copy code
 ```
 node wallet.js
 ```
