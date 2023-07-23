@@ -9,8 +9,8 @@ This is a simple project with a self-implemented blockchain for creating and man
 ## Requirements <a name="getting_started"></a>
 Before getting started, ensure you have the following prerequisites installed:
 
-Node.js (version 12 or higher)
-npm (Node Package Manager, comes with Node.js)
+* Node.js (version 12 or higher)
+* npm (Node Package Manager, comes with Node.js)
 ### Installation
 Clone the repository to your computer:
 bash
