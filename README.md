@@ -1,0 +1,2 @@
+# walletNode
+walletNode PlatariumSmartChain
