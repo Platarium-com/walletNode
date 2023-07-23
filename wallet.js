@@ -10,15 +10,14 @@ const walletFilePath = './wallet/walletKeys.json';
 const EC = require('elliptic').ec;
 
 let mnemonic = '';
-// Функція для створення нової мнемонічної фрази
+// Function for creating a new mnemonic phrase
 function generateMnemonic() {
-  mnemonic = bip39.generateMnemonic(256); // Зберігаємо згенеровану фразу в змінну
-  console.log('Мнемонічна фраза для відновлення кошелька:');
-  console.log('Mnemonic Phrase: ' + mnemonic); // Виводимо мнемонічну фразу в консоль
-  console.log('Будь ласка, збережіть цю фразу у безпечному місці. Вона потрібна для відновлення вашого кошелька.');
+  mnemonic = bip39.generateMnemonic(256); // Save the generated phrase to a variable
+  console.log('Mnemonic phrase to recover your wallet:');
+  console.log('Mnemonic Phrase: ' + mnemonic); // Displaying a mnemonic phrase in the console
+  console.log('Please save this phrase in a safe place. We need it to recover your wallet.');
 }
 
-// Function to read saved wallets from the file
 // Function to create a new wallet
 async function createNewWallet() {
   try {
@@ -27,16 +26,16 @@ async function createNewWallet() {
     blockchainInstance.generateWalletKeys();
     const walletKeys = blockchainInstance.walletKeys[blockchainInstance.walletKeys.length - 1];
 
-    console.log('Створено новий кошелек.');
-    console.log('Мнемонічна фраза для відновлення кошелька:');
+    console.log('A new wallet.');
+    console.log('Mnemonic phrase to recover your wallet:');
     console.log(walletKeys.keyObj.mnemonic);
-    console.log('Адреса публічного ключа:', walletKeys.publicKey);
-    console.log('Приватний ключ:', walletKeys.privateKey);
+    console.log('Public key address:', walletKeys.publicKey);
+    console.log('Private key:', walletKeys.privateKey);
 
     // Save the new wallet to the walletKeys.json file
     saveWalletToJSON(walletKeys);
   } catch (error) {
-    console.error('Помилка при створенні нового кошелька:', error);
+    console.error('Error creating a new wallet:', error);
   }
 }
 
@@ -57,9 +56,9 @@ function saveWalletToJSON(wallet) {
 
     // Save the updated walletsData array back to the file
     fs.writeFileSync(walletFilePath, JSON.stringify(walletsData, null, 2));
-    console.log('Дані нового кошелька збережено у файл walletKeys.json.');
+    console.log('The new wallet data is saved to a file walletKeys.json.');
   } catch (error) {
-    console.error('Помилка при збереженні даних нового кошелька:', error);
+    console.error('Error saving new wallet data:', error);
   }
 }
 // Function to list the saved wallets
@@ -67,29 +66,29 @@ function listWallets() {
   const savedWallets = loadWallets();
 
   if (savedWallets.length === 0) {
-    console.log('Немає збережених кошельків.');
+    console.log('No saved wallets.');
     return;
   }
 
-  console.log('Список збережених кошельків:');
+  console.log('List of saved wallets:');
   savedWallets.forEach((wallet, index) => {
-    console.log(`[${index + 1}] Адреса публічного ключа: ${wallet.publicKey}`);
+    console.log(`[${index + 1}] Public key address: ${wallet.publicKey}`);
   });
 }
 
 // Function to restoreWalletFromMnemonic
 const restoreWalletFromMnemonic = async function (rl) {
-  console.log('Введіть 24 слова для відновлення кошелька:');
+  console.log('Enter 24 words to recover your wallet:');
   const mnemonic = await new Promise((resolve) => {
-    rl.question('Слова: ', resolve);
+    rl.question('Words: ', resolve);
   });
 
   if (!bip39.validateMnemonic(mnemonic)) {
-    console.log('Невірні слова для відновлення кошелька. Будь ласка, введіть правильну мнемонічну фразу.');
+    console.log('Wrong words to recover your wallet. Please enter the correct mnemonic phrase.');
     return;
   }
 
-  console.log('Увага: Ці дані дуже важливі! Збережіть їх у надійному місці.');
+  console.log('Attention: This data is very important! Keep them in a safe place.');
   const seed = await bip39.mnemonicToSeed(mnemonic);
   const hdNode = hdkey.fromMasterSeed(seed);
   const walletKeys = {
@@ -97,16 +96,16 @@ const restoreWalletFromMnemonic = async function (rl) {
     privateKey: hdNode.privateKey.toString('hex'),
   };
 
-  // Зберігаємо мнемонічну фразу в файл
+  // Save the mnemonic phrase to a file
   saveMnemonic(mnemonic);
 
   const savedWallets = loadWallets();
   savedWallets.push(walletKeys);
   saveWallets(savedWallets);
 
-  console.log('Кошелек успішно відновлено.');
-  console.log('Адреса публічного ключа:', walletKeys.publicKey);
-  console.log('Приватний ключ:', walletKeys.privateKey);
+  console.log('Wallet successfully recovered.');
+  console.log('Public key address:', walletKeys.publicKey);
+  console.log('Private key:', walletKeys.privateKey);
 }
 
 // Function to create a new transaction
@@ -114,22 +113,22 @@ async function createTransaction(rl) {
   const savedWallets = loadWallets();
 
   if (savedWallets.length === 0) {
-    console.log('Для створення транзакції потрібен мінімум один кошелек.');
+    console.log('At least one wallet is required to create a transaction.');
     return;
   }
 
-  console.log('Виберіть номер кошелька для транзакції:');
+  console.log('Select the wallet number for the transaction:');
   savedWallets.forEach((wallet, index) => {
-    console.log(`[${index + 1}] Адреса публічного ключа: ${wallet.publicKey}`);
+    console.log(`[${index + 1}] Public key address: ${wallet.publicKey}`);
   });
 
   const selectedWalletIndex = await new Promise((resolve) => {
-    rl.question('Номер: ', (answer) => {
+    rl.question('Number: ', (answer) => {
       const index = parseInt(answer);
       if (index >= 1 && index <= savedWallets.length) {
         resolve(index - 1);
       } else {
-        console.log('Невірний номер кошелька.');
+        console.log('Wrong wallet number.');
         resolve(-1);
       }
     });
@@ -141,17 +140,17 @@ async function createTransaction(rl) {
 
   const selectedWallet = savedWallets[selectedWalletIndex];
 
-  console.log('Введіть адресу одержувача:');
+  console.log('Enter the recipient's address:');
   const recipientAddress = await new Promise((resolve) => {
-    rl.question('Адреса: ', resolve);
+    rl.question('Address: ', resolve);
   });
 
-  console.log('Введіть суму транзакції:');
+  console.log('Enter the transaction amount:');
   const amount = await new Promise((resolve) => {
     rl.question('Сума: ', (answer) => {
       const parsedAmount = parseFloat(answer);
       if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        console.log('Невірна сума транзакції.');
+        console.log('Incorrect transaction amount.');
         resolve(-1);
       } else {
         resolve(parsedAmount);
@@ -178,10 +177,10 @@ async function createTransaction(rl) {
 
   try {
     const response = await axios.post(serverUrl, transaction, config);
-    console.log('Транзакцію успішно створено і надіслано на сервер.');
-    console.log('Відповідь сервера:', response.data);
+    console.log('Transaction successfully created and sent to the server.');
+    console.log('Server response:', response.data);
   } catch (error) {
-    console.log('Транзакцію успішно створено і надіслано на сервер');
+    console.log('Transaction successfully created and sent to the server');
   }
 }
 // Function to save the mnemonic phrase to a file
@@ -192,14 +191,24 @@ function saveMnemonic(mnemonic) {
 // Function to print the header with additional information
 function printHeader() {
   console.log('===============================================================');
+
+  function printAsciiArt() {
+    console.log(`
+█▀█ █░░ ▄▀█ ▀█▀ ▄▀█ █▀█ █ █░█ █▀▄▀█   █░█░█ ▄▀█ █░░ █░░ █▀▀ ▀█▀
+█▀▀ █▄▄ █▀█ ░█░ █▀█ █▀▄ █ █▄█ █░▀░█   ▀▄▀▄▀ █▀█ █▄▄ █▄▄ ██▄ ░█░
+                          
+`);
+  }
+  // ASCII-art
+  printAsciiArt();
   console.log('===============================================================');
-  console.log('Команди:');
-  console.log('create - створити новий кошелек');
-  console.log('list   - переглянути список збережених кошельків');
-  console.log('transaction - створити нову транзакцію');
-  console.log('add - додати новий кошелек');
-  console.log('restore - відновити кошелек з мнемонічної фрази');
-  console.log('exit   - вийти з програми');
+  console.log('Commands:');
+  console.log('create - create a new wallet');
+  console.log('list   - view the list of saved wallets');
+  console.log('transaction - create a new transaction');
+  console.log('add - add a new wallet');
+  console.log('restore - recover a wallet from a mnemonic phrase');
+  console.log('exit   - exit the program');
   console.log('===========================================');
 }
 
@@ -211,7 +220,7 @@ function clearScreen() {
 // Function to print the last message and wait for user input
 async function waitForUserInput(lastMessage = '') {
   console.log(lastMessage);
-  console.log('Натисніть Enter для продовження...');
+  console.log('Press Enter to continue...');
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -226,14 +235,14 @@ async function waitForUserInput(lastMessage = '') {
 }
 
 async function getUserKeys(rl) {
-  console.log('Введіть ваш відкритий ключ:');
+  console.log('Enter your public key:');
   const publicKey = await new Promise((resolve) => {
-    rl.question('Публічний ключ: ', resolve);
+    rl.question('Public key: ', resolve);
   });
 
-  console.log('Введіть ваш закритий ключ:');
+  console.log('Enter your private key:');
   const privateKey = await new Promise((resolve) => {
-    rl.question('Приватний ключ: ', resolve);
+    rl.question('Private key: ', resolve);
   });
 
   return {
@@ -250,9 +259,9 @@ async function addNewWallet(rl) {
 
   saveWallets(savedWallets);
 
-  console.log('Новий кошелек успішно додано.');
-  console.log('Адреса публічного ключа:', userKeys.publicKey);
-  console.log('Приватний ключ:', userKeys.privateKey);
+  console.log('The new wallet has been successfully added.');
+  console.log('Public key address:', userKeys.publicKey);
+  console.log('Private key:', userKeys.privateKey);
 }
 // Function to read saved wallets from the file
 function loadWallets() {
@@ -276,34 +285,33 @@ function loadWallets() {
     });
 
     const answer = await new Promise((resolve) => {
-      rl.question('Виберіть операцію (create, list, transaction, add, restore або exit): ', resolve);
+      rl.question('Select an operation (create, list, transaction, add, restore або exit): ', resolve);
     });
 
     if (answer === 'create') {
       createNewWallet();
-      lastMessage = 'Створено новий кошелек.';
+      lastMessage = 'A new wallet has been created.';
     } else if (answer === 'list') {
       listWallets();
       lastMessage = '';
     } else if (answer === 'transaction') {
       await createTransaction(rl);
-      lastMessage = 'Транзакція успішно створена.';
+      lastMessage = 'Transaction successfully created.';
     } else if (answer === 'add') {
       await addNewWallet(rl);
-      lastMessage = 'Новий кошелек успішно додано.';
-    } else if (answer === 'restore') { // Додано опцію "restore"
+      lastMessage = 'New wallet successfully added.';
+    } else if (answer === 'restore') { 
       await restoreWalletFromMnemonic(rl);
-      lastMessage = 'Кошелек успішно відновлено.';
+      lastMessage = 'Wallet successfully recovered.';
     } else if (answer === 'exit') {
       break;
     } else {
-      lastMessage = 'Невідома команда.';
+      lastMessage = 'Unknown command.';
     }
 
       await waitForUserInput(lastMessage);
     } catch (error) {
-      console.error('Помилка виконання програми:', error);
+      console.error('Program execution error:', error);
     }
   }
 })();
-// Start the main loop
