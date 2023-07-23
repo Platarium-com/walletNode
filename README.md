@@ -1,8 +1,9 @@
+<h3 align="center">Platarium Wallet Node</h3>
+---
 
-###PlatariumWalletNode
 This is a simple project with a self-implemented blockchain for creating and managing wallets and transactions.
 
-###Requirements
+## Requirements <a name="getting_started"></a>
 Before getting started, ensure you have the following prerequisites installed:
 
 Node.js (version 12 or higher)
