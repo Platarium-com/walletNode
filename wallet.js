@@ -147,7 +147,7 @@ async function createTransaction(rl) {
 
   console.log('Enter the transaction amount:');
   const amount = await new Promise((resolve) => {
-    rl.question('Сума: ', (answer) => {
+    rl.question('Amount: ', (answer) => {
       const parsedAmount = parseFloat(answer);
       if (isNaN(parsedAmount) || parsedAmount <= 0) {
         console.log('Incorrect transaction amount.');
