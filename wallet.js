@@ -1,3 +1,6 @@
+const axios = require('axios');
+const express = require('express'); // Додано імпорт модуля express
+const bodyParser = require('body-parser');
 const { Blockchain } = require('platariumsmartchain');
 const fs = require('fs');
 const readline = require('readline');
@@ -8,6 +11,7 @@ const serverUrl = 'http://platarium.com:3000/transactions';
 const transactionFilePath = './wallet/transactions.json';
 const walletFilePath = './wallet/walletKeys.json';
 const EC = require('elliptic').ec;
+const app = express();
 
 let mnemonic = '';
 // Function for creating a new mnemonic phrase
@@ -77,37 +81,97 @@ function listWallets() {
 }
 
 // Function to restoreWalletFromMnemonic
-const restoreWalletFromMnemonic = async function (rl) {
-  console.log('Enter 24 words to recover your wallet:');
-  const mnemonic = await new Promise((resolve) => {
-    rl.question('Words: ', resolve);
-  });
+async function createTransaction(rl) {
+  const savedWallets = loadWallets();
 
-  if (!bip39.validateMnemonic(mnemonic)) {
-    console.log('Wrong words to recover your wallet. Please enter the correct mnemonic phrase.');
+  if (savedWallets.length === 0) {
+    console.log('At least one wallet is required to create a transaction.');
     return;
   }
 
-  console.log('Attention: This data is very important! Keep them in a safe place.');
-  const seed = await bip39.mnemonicToSeed(mnemonic);
-  const hdNode = hdkey.fromMasterSeed(seed);
-  const walletKeys = {
-    publicKey: hdNode.publicKey.toString('hex'),
-    privateKey: hdNode.privateKey.toString('hex'),
+  console.log('Select the wallet number for the transaction:');
+  savedWallets.forEach((wallet, index) => {
+    console.log(`[${index + 1}] Public key address: ${wallet.publicKey}`);
+  });
+
+  const selectedWalletIndex = await new Promise((resolve) => {
+    rl.question('Number: ', (answer) => {
+      const index = parseInt(answer);
+      if (index >= 1 && index <= savedWallets.length) {
+        resolve(index - 1);
+      } else {
+        console.log('Wrong wallet number.');
+        resolve(-1);
+      }
+    });
+  });
+
+  if (selectedWalletIndex === -1) {
+    return;
+  }
+
+  const selectedWallet = savedWallets[selectedWalletIndex];
+
+  console.log('Enter the recipients address:');
+  const recipientAddress = await new Promise((resolve) => {
+    rl.question('Address: ', resolve);
+  });
+
+  console.log('Enter the transaction amount:');
+  const amount = await new Promise((resolve) => {
+    rl.question('Сума: ', (answer) => {
+      const parsedAmount = parseFloat(answer);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        console.log('Incorrect transaction amount.');
+        resolve(-1);
+      } else {
+        resolve(parsedAmount);
+      }
+    });
+  });
+
+  if (amount === -1) {
+    return;
+  }
+
+  const transaction = {
+    from: selectedWallet.publicKey,
+    to: recipientAddress,
+    amount: amount,
+    timestamp: Date.now(),
   };
 
-  // Save the mnemonic phrase to a file
-  saveMnemonic(mnemonic);
-
-  const savedWallets = loadWallets();
-  savedWallets.push(walletKeys);
-  saveWallets(savedWallets);
-
-  console.log('Wallet successfully recovered.');
-  console.log('Public key address:', walletKeys.publicKey);
-  console.log('Private key:', walletKeys.privateKey);
+  try {
+    const response = await axios.post(serverUrl, transaction);
+    console.log('Transaction successfully created and sent to the server.');
+    console.log('Server response:', response.data);
+  } catch (error) {
+    console.log('Error creating and sending the transaction:', error);
+  }
 }
 
+// Обробник POST-запиту для шляху /transactions
+app.post('/transactions', async (req, res) => {
+  const transaction = req.body;
+  console.log('A new transaction has been received:', transaction);
+
+  try {
+    console.log('Transaction data to be stored on the server:', transaction);
+
+    // Save the transaction to the file
+    const savedTransactions = loadTransactions();
+    savedTransactions.push(transaction);
+    saveTransactions(savedTransactions);
+
+    // Forward the transaction to the external server using Axios
+    const response = await axios.post('http://platarium.com:3000/transactions', transaction);
+    console.log('Transaction successfully saved to the server:', response.data);
+    res.status(200).json({ message: 'The transaction is successfully saved to the server.' });
+  } catch (error) {
+    console.log('Error saving a transaction to the server:', error);
+    res.status(500).json({ error: 'Error saving a transaction to the server.' });
+  }
+});
 // Function to create a new transaction
 async function createTransaction(rl) {
   const savedWallets = loadWallets();
