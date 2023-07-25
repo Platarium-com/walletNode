@@ -140,7 +140,7 @@ async function createTransaction(rl) {
 
   const selectedWallet = savedWallets[selectedWalletIndex];
 
-  console.log('Enter the recipient's address:');
+  console.log('Enter the recipients address:');
   const recipientAddress = await new Promise((resolve) => {
     rl.question('Address: ', resolve);
   });
