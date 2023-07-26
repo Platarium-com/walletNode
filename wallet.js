@@ -1,5 +1,5 @@
 const axios = require('axios');
-const express = require('express'); // Додано імпорт модуля express
+const express = require('express'); 
 const bodyParser = require('body-parser');
 const { Blockchain } = require('platariumsmartchain');
 const fs = require('fs');
@@ -40,6 +40,41 @@ async function createNewWallet() {
     saveWalletToJSON(walletKeys);
   } catch (error) {
     console.error('Error creating a new wallet:', error);
+  }
+}
+// function restoreWalletFromMnemonic
+async function restoreWalletFromMnemonic(rl) {
+  console.log('Enter the mnemonic phrase to recover your wallet:');
+  const mnemonic = await new Promise((resolve) => {
+    rl.question('Mnemonic Phrase: ', resolve);
+  });
+
+  try {
+    if (!bip39.validateMnemonic(mnemonic)) {
+      console.log('Invalid mnemonic phrase.');
+      return;
+    }
+
+    const seed = await bip39.mnemonicToSeed(mnemonic);
+    const hdNode = hdkey.fromMasterSeed(seed);
+    const ec = new EC('secp256k1');
+    const key = ec.keyFromPrivate(hdNode.privateKey);
+    const publicKey = key.getPublic('hex');
+    const privateKey = key.getPrivate('hex');
+
+    const wallet = {
+      publicKey: publicKey,
+      privateKey: privateKey,
+    };
+
+    console.log('Wallet successfully recovered.');
+    console.log('Public key address:', wallet.publicKey);
+    console.log('Private key:', wallet.privateKey);
+
+    // Save the recovered wallet to the walletKeys.json file
+    saveWalletToJSON(wallet);
+  } catch (error) {
+    console.error('Error recovering the wallet:', error);
   }
 }
 
@@ -247,6 +282,48 @@ async function createTransaction(rl) {
     console.log('Transaction successfully created and sent to the server');
   }
 }
+// function getBalance
+async function getBalance(rl) {
+  const savedWallets = loadWallets();
+
+  if (savedWallets.length === 0) {
+    console.log('At least one wallet is required to get the balance.');
+    return;
+  }
+
+  console.log('Select the wallet number to get the balance:');
+  savedWallets.forEach((wallet, index) => {
+    console.log(`[${index + 1}] Public key address: ${wallet.publicKey}`);
+  });
+
+  const selectedWalletIndex = await new Promise((resolve) => {
+    rl.question('Number: ', (answer) => {
+      const index = parseInt(answer);
+      if (index >= 1 && index <= savedWallets.length) {
+        resolve(index - 1);
+      } else {
+        console.log('Wrong wallet number.');
+        resolve(-1);
+      }
+    });
+  });
+
+  if (selectedWalletIndex === -1) {
+    return;
+  }
+
+  const selectedWallet = savedWallets[selectedWalletIndex];
+  const publicKey = selectedWallet.publicKey;
+
+  try {
+    const response = await axios.get(`${serverUrl}/balance/${publicKey}`);
+    console.log(`Balance for wallet ${publicKey}: ${response.data.balance}`);
+  } catch (error) {
+    console.log('Error getting the balance:', error);
+  }
+}
+
+
 // Function to save the mnemonic phrase to a file
 function saveMnemonic(mnemonic) {
   fs.writeFileSync('./wallet/mnemonic.txt', mnemonic);
@@ -272,6 +349,7 @@ function printHeader() {
   console.log('transaction - create a new transaction');
   console.log('add - add a new wallet');
   console.log('restore - recover a wallet from a mnemonic phrase');
+  console.log('balance - get the balance for a wallet'); // Додано опцію "balance"
   console.log('exit   - exit the program');
   console.log('===========================================');
 }
@@ -361,17 +439,20 @@ function loadWallets() {
     } else if (answer === 'transaction') {
       await createTransaction(rl);
       lastMessage = 'Transaction successfully created.';
-    } else if (answer === 'add') {
-      await addNewWallet(rl);
-      lastMessage = 'New wallet successfully added.';
-    } else if (answer === 'restore') { 
-      await restoreWalletFromMnemonic(rl);
-      lastMessage = 'Wallet successfully recovered.';
-    } else if (answer === 'exit') {
-      break;
-    } else {
-      lastMessage = 'Unknown command.';
-    }
+} else if (answer === 'add') {
+  await addNewWallet(rl);
+  lastMessage = 'New wallet successfully added.';
+} else if (answer === 'restore') { 
+  await restoreWalletFromMnemonic(rl);
+  lastMessage = 'Wallet successfully recovered.';
+} else if (answer === 'balance') { // Додано умовний оператор для опції "balance"
+  await getBalance(rl);
+  lastMessage = '';
+} else if (answer === 'exit') {
+  break;
+} else {
+  lastMessage = 'Unknown command.';
+}
 
       await waitForUserInput(lastMessage);
     } catch (error) {
