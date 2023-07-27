@@ -8,10 +8,11 @@ const bip39 = require('bip39');
 const hdkey = require('hdkey');
 const { exec } = require('child_process');
 const serverUrl = 'http://platarium.com:3000/transactions';
-const transactionFilePath = './wallet/transactions.json';
 const walletFilePath = './wallet/walletKeys.json';
 const EC = require('elliptic').ec;
 const app = express();
+const prefix = "Px"; 
+const privateKeyPrefix = "PSx"; 
 
 let mnemonic = '';
 // Function for creating a new mnemonic phrase
@@ -42,7 +43,8 @@ async function createNewWallet() {
     console.error('Error creating a new wallet:', error);
   }
 }
-// function restoreWalletFromMnemonic
+
+// Function to restore a wallet from a mnemonic phrase
 async function restoreWalletFromMnemonic(rl) {
   console.log('Enter the mnemonic phrase to recover your wallet:');
   const mnemonic = await new Promise((resolve) => {
@@ -55,13 +57,13 @@ async function restoreWalletFromMnemonic(rl) {
       return;
     }
 
-    const seed = await bip39.mnemonicToSeed(mnemonic);
-    const hdNode = hdkey.fromMasterSeed(seed);
-    const ec = new EC('secp256k1');
-    const key = ec.keyFromPrivate(hdNode.privateKey);
-    const publicKey = key.getPublic('hex');
-    const privateKey = key.getPrivate('hex');
-
+    const seed = bip39.mnemonicToSeedSync(mnemonic);
+    const root = hdkey.fromMasterSeed(seed);
+    const addrNode = root.derive("m/44'/60'/0'/0/0");
+    const pubKey = addrNode._publicKey;
+    const prvKey = addrNode._privateKey;
+    const publicKey = prefix + pubKey.toString('hex');
+    const privateKey = privateKeyPrefix + prvKey.toString('hex');
     const wallet = {
       publicKey: publicKey,
       privateKey: privateKey,
@@ -70,13 +72,11 @@ async function restoreWalletFromMnemonic(rl) {
     console.log('Wallet successfully recovered.');
     console.log('Public key address:', wallet.publicKey);
     console.log('Private key:', wallet.privateKey);
-
-    // Save the recovered wallet to the walletKeys.json file
-    saveWalletToJSON(wallet);
   } catch (error) {
-    console.error('Error recovering the wallet:', error);
+    console.error('Error recovering the wallet:', error.message);
   }
 }
+
 
 // Function to save the wallet to the walletKeys.json file
 function saveWalletToJSON(wallet) {
@@ -113,76 +113,6 @@ function listWallets() {
   savedWallets.forEach((wallet, index) => {
     console.log(`[${index + 1}] Public key address: ${wallet.publicKey}`);
   });
-}
-
-// Function to restoreWalletFromMnemonic
-async function createTransaction(rl) {
-  const savedWallets = loadWallets();
-
-  if (savedWallets.length === 0) {
-    console.log('At least one wallet is required to create a transaction.');
-    return;
-  }
-
-  console.log('Select the wallet number for the transaction:');
-  savedWallets.forEach((wallet, index) => {
-    console.log(`[${index + 1}] Public key address: ${wallet.publicKey}`);
-  });
-
-  const selectedWalletIndex = await new Promise((resolve) => {
-    rl.question('Number: ', (answer) => {
-      const index = parseInt(answer);
-      if (index >= 1 && index <= savedWallets.length) {
-        resolve(index - 1);
-      } else {
-        console.log('Wrong wallet number.');
-        resolve(-1);
-      }
-    });
-  });
-
-  if (selectedWalletIndex === -1) {
-    return;
-  }
-
-  const selectedWallet = savedWallets[selectedWalletIndex];
-
-  console.log('Enter the recipients address:');
-  const recipientAddress = await new Promise((resolve) => {
-    rl.question('Address: ', resolve);
-  });
-
-  console.log('Enter the transaction amount:');
-  const amount = await new Promise((resolve) => {
-    rl.question('Сума: ', (answer) => {
-      const parsedAmount = parseFloat(answer);
-      if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        console.log('Incorrect transaction amount.');
-        resolve(-1);
-      } else {
-        resolve(parsedAmount);
-      }
-    });
-  });
-
-  if (amount === -1) {
-    return;
-  }
-
-  const transaction = {
-    from: selectedWallet.publicKey,
-    to: recipientAddress,
-    amount: amount,
-    timestamp: Date.now(),
-  };
-
-  try {
-    const response = await axios.post(serverUrl, transaction);
-    console.log('Transaction successfully created and sent to the server.');
-    console.log('Server response:', response.data);
-  } catch (error) {
-    console.log('Error creating and sending the transaction:', error);
-  }
 }
 
 // Обробник POST-запиту для шляху /transactions
@@ -261,6 +191,20 @@ async function createTransaction(rl) {
     return;
   }
 
+  // Check if the sender has sufficient balance for the transaction
+  const publicKey = selectedWallet.publicKey;
+  try {
+    const response = await axios.get(`${serverUrl}/balance/${publicKey}`);
+    const balance = response.data.balance;
+    if (balance < amount) {
+      console.log('Insufficient balance for the transaction.');
+      return;
+    }
+  } catch (error) {
+    console.log('Error getting the balance:', error);
+    return;
+  }
+
   const transaction = {
     from: selectedWallet.publicKey,
     to: recipientAddress,
@@ -279,8 +223,10 @@ async function createTransaction(rl) {
     console.log('Transaction successfully created and sent to the server.');
     console.log('Server response:', response.data);
   } catch (error) {
-    console.log('Transaction successfully created and sent to the server');
+    console.log('Error creating and sending the transaction:', error);
   }
+
+  await waitForUserInput(); // Очікуємо вводу користувача перед продовженням
 }
 // function getBalance
 async function getBalance(rl) {
@@ -438,7 +384,6 @@ function loadWallets() {
       lastMessage = '';
     } else if (answer === 'transaction') {
       await createTransaction(rl);
-      lastMessage = 'Transaction successfully created.';
 } else if (answer === 'add') {
   await addNewWallet(rl);
   lastMessage = 'New wallet successfully added.';
