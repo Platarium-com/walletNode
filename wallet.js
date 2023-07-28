@@ -196,10 +196,7 @@ async function createTransaction(rl) {
   try {
     const response = await axios.get(`${serverUrl}/balance/${publicKey}`);
     const balance = response.data.balance;
-    if (balance < amount) {
-      console.log('Insufficient balance for the transaction.');
-      return;
-    }
+
   } catch (error) {
     console.log('Error getting the balance:', error);
     return;
@@ -223,7 +220,7 @@ async function createTransaction(rl) {
     console.log('Transaction successfully created and sent to the server.');
     console.log('Server response:', response.data);
   } catch (error) {
-    console.log('Error creating and sending the transaction:', error);
+    console.log('Sending the transaction:');
   }
 
   await waitForUserInput(); // Очікуємо вводу користувача перед продовженням
